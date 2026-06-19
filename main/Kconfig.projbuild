@@ -212,7 +212,7 @@ menu "Stratum Configuration"
     config ASIC_HOST_VERSION_BITS
         int "Host-expanded version rolling bits"
         range 0 16
-        default 10
+        default 0
         help
             Number of pool-provided version-rolling bits reserved for host-side
             job windows before advancing extraNonce2. The default maps one
