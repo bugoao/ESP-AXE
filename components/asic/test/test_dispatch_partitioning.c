@@ -7,7 +7,7 @@
 #include "utils.h"
 
 #ifndef CONFIG_ASIC_HOST_VERSION_BITS
-#define CONFIG_ASIC_HOST_VERSION_BITS 10
+#define CONFIG_ASIC_HOST_VERSION_BITS 0
 #endif
 
 static void set_extranonce2_counter_u64(asic_extranonce2_counter_t *counter, uint64_t value)
