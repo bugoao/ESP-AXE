@@ -25,7 +25,7 @@
 #endif
 
 #ifndef CONFIG_ASIC_HOST_VERSION_BITS
-#define CONFIG_ASIC_HOST_VERSION_BITS 10
+#define CONFIG_ASIC_HOST_VERSION_BITS 0
 #endif
 
 static const double NONCE_SPACE = 4294967296.0; //  2^32
