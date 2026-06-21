@@ -4,8 +4,8 @@
 #include <pthread.h>
 #include "mining.h"
 
-#define QUEUE_SIZE 12
-#define QUEUE_LOW_WATER_MARK_MAX 12
+#define QUEUE_SIZE 128
+#define QUEUE_LOW_WATER_MARK_MAX 128
 
 typedef struct
 {
