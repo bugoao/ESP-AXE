@@ -1,0 +1,20 @@
+﻿# ESP-IDF local configuration
+sdkconfig
+sdkconfig.old
+
+# Build and generated dependency output
+**/build/
+managed_components/
+
+# Web UI generated files
+**/node_modules/
+**/.angular/
+**/dist/
+
+# Local editor configuration
+.vscode/
+.history/
+
+# Optional device configuration images
+config.bin
+config.cvs

@@ -1,0 +1,142 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+#include "driver/uart.h"
+
+#include "esp_log.h"
+
+#include "bm1366.h"
+#include "bm1368.h"
+#include "bm1370.h"
+#include "serial.h"
+#include "utils.h"
+
+#define ECHO_TEST_TXD (17)
+#define ECHO_TEST_RXD (18)
+#define UART_RX_BUF_SIZE (4096)
+#define UART_TX_BUF_SIZE (0)
+
+static const char *TAG = "serial";
+
+esp_err_t SERIAL_init(void)
+{
+    esp_err_t err;
+
+    ESP_LOGI(TAG, "Initializing serial");
+    // Configure UART1 parameters
+    uart_config_t uart_config = {
+        .baud_rate = 115200,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .rx_flow_ctrl_thresh = 122,
+    };
+    // Configure UART1 parameters
+    err = uart_param_config(UART_NUM_1, &uart_config);
+    if (err != ESP_OK) {
+        return err;
+    }
+    // Set UART1 pins(TX: IO17, RX: I018)
+    err = uart_set_pin(UART_NUM_1, ECHO_TEST_TXD, ECHO_TEST_RXD, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    // Install UART driver (we don't need an event queue here).
+    // Keep TX buffering disabled so writes stay synchronous, but give RX
+    // enough headroom to absorb bursts from multi-chip result traffic.
+    return uart_driver_install(UART_NUM_1, UART_RX_BUF_SIZE, UART_TX_BUF_SIZE, 0, NULL, 0);
+}
+
+esp_err_t SERIAL_set_baud(int baud)
+{
+    esp_err_t err;
+
+    ESP_LOGI(TAG, "Changing UART baud to %i", baud);
+
+    // Make sure that we are done writing before setting a new baudrate.
+    err = uart_wait_tx_done(UART_NUM_1, 1000 / portTICK_PERIOD_MS);
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    return uart_set_baudrate(UART_NUM_1, baud);
+}
+
+int SERIAL_send(uint8_t *data, int len, bool debug)
+{
+    int sent_total = 0;
+    int attempts = 0;
+
+    if (data == NULL || len < 0) {
+        return -1;
+    }
+
+    if (debug)
+    {
+        printf("tx: ");
+        prettyHex((unsigned char *)data, len);
+        printf("\n");
+    }
+
+    while (sent_total < len && attempts++ < 4) {
+        int sent = uart_write_bytes(UART_NUM_1,
+                                    (const char *)data + sent_total,
+                                    len - sent_total);
+        if (sent <= 0) {
+            break;
+        }
+        sent_total += sent;
+    }
+    return sent_total;
+}
+
+/// @brief waits for a serial response from the device
+/// @param buf buffer to read data into
+/// @param buf number of ms to wait before timing out
+/// @return number of bytes read, or -1 on error
+int16_t SERIAL_rx(uint8_t *buf, uint16_t size, uint16_t timeout_ms)
+{
+    if (buf == NULL || size == 0) {
+        return 0;
+    }
+    TickType_t timeout_ticks = timeout_ms == 0 ? 0 :
+        (TickType_t)((timeout_ms + portTICK_PERIOD_MS - 1U) / portTICK_PERIOD_MS);
+    int16_t bytes_read = uart_read_bytes(UART_NUM_1, buf, size, timeout_ticks);
+
+    #if BM1366_SERIALRX_DEBUG || BM1368_SERIALRX_DEBUG || BM1370_SERIALRX_DEBUG
+    size_t buff_len = 0;
+    if (bytes_read > 0) {
+        uart_get_buffered_data_len(UART_NUM_1, &buff_len);
+        printf("rx: ");
+        prettyHex((unsigned char*) buf, bytes_read);
+        printf(" [%d]\n", buff_len);
+    }
+    #endif
+
+    return bytes_read;
+}
+
+void SERIAL_debug_rx(void)
+{
+    int ret;
+    uint8_t buf[100];
+
+    ret = SERIAL_rx(buf, 100, 20);
+    if (ret < 0)
+    {
+        fprintf(stderr, "unable to read data\n");
+        return;
+    }
+
+    memset(buf, 0, 100);
+}
+
+void SERIAL_clear_buffer(void)
+{
+    uart_flush_input(UART_NUM_1);
+}
