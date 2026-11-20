@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 3.5)
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
-set(PROJECT_VER "ESP-AXE-Dev-OTA-06")
+set(PROJECT_VER "Dev06")
 
 project(esp-miner)
 
